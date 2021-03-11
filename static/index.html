@@ -11,7 +11,7 @@
 
 	<style>
 		#chart {
-			max-width: 100%;
+			max-width: 90%;
 			margin: 35px auto;
 		}
 	</style>
@@ -50,12 +50,13 @@
 			let fields = line.split(',');
 			let time = new Date(fields[0]).getTime();
 			let value = parseInt(fields[1]);
-			return [time, value];
+			return { x: time, y: value };
 		}
 		async function getData() {
 			var data = await fetch('data.csv')
 				.then(response => response.text())
-				.then(text => text.split('\n'));
+				.then(text => text.trim().split('\n'));
+				console.log(data.map(parseLine));
 			return data.map(parseLine);
 		}
 	</script>
@@ -69,55 +70,27 @@
 			var options = {
 				series: [{
 					name: 'Internet Connection',
-					type: 'line',
-					data: data
+					data: data,
 				}],
 				chart: {
 					type: 'line',
-					// stacked: false,
 					height: 350,
-					// zoom: {
-					// 	type: 'x',
-					// 	enabled: true,
-					// 	autoScaleYaxis: true
-					// },
-					// animations: {
-					// 	enabled: true,
-					// 	animateGradually: {
-					// 		enabled: false
-					// 	}
-					// },
-					// toolbar: {
-					// 	autoSelected: 'zoom'
-					// }
 				},
-				// stroke: {
-				// 	curve: 'straight',
-				// },
-				// dataLabels: {
-				// 	enabled: false
-				// },
-				// markers: {
-				// 	size: 0,
-				// },
 				title: {
 					text: 'Internet Connection',
 					align: 'left'
 				},
-				// fill: {
-				// 	type: 'gradient',
-				// 	gradient: {
-				// 		shadeIntensity: 1,
-				// 		inverseColors: false,
-				// 		opacityFrom: 0.5,
-				// 		opacityTo: 0,
-				// 		stops: [0, 90, 100]
-				// 	},
-				// },
+				fill: {
+					type: 'gradient',
+					gradient: {
+						type: 'vertical',
+						inverseColors: false,
+						gradientToColors: ["#FF3377"],
+					},
+				},
 				yaxis: {
 					labels: {
 						formatter: function (val) {
-							// return val ? 'true' : 'false';
 							return val.toFixed(0);
 						},
 					},
@@ -129,18 +102,10 @@
 					type: 'datetime',
 					labels: {
 						datetimeUTC: false,
-						datetimeFormatter: {
-							year: 'yyyy',
-							month: "MMM 'yy",
-							day: 'dd MMM',
-							hour: 'HH:mm',
-						},
 					},
 					tooltip: {
 						formatter: function (val) {
-							// return val ? 'true' : 'false';
-							let date = new Date(val);
-							return date.toLocaleString('es-AR');
+							return new Date(val).toLocaleString('es-AR');
 						}
 					}
 				},
@@ -148,7 +113,6 @@
 					shared: false,
 					y: {
 						formatter: function (val) {
-							// return val ? 'true' : 'false';
 							return val.toFixed(0);
 						}
 					}
