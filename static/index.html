@@ -12,22 +12,61 @@
 			max-width: 90%;
 			margin: 35px auto;
 		}
+
+		.group > * {
+			display: block;
+		}
 	</style>
 
 	<script src="lib/apexcharts.min.js"></script>
 
 	<script src="handleData.js"></script>
 
-	<script>
-	</script>
 </head>
 
 <body>
+	<div class="group">
+		<label for="simplifiedCheckbox">
+			<input id="simplifiedCheckbox" type="checkbox" checked="true" onchange="updateChart()"/>
+			Simplified
+		</label>
+		<select id="selectNumber" selected="200" onchange="updateChart()">
+			<option value="0">Show all</option>
+			<option value="200">Show last 200</option>
+			<option value="400">Show last 400</option>
+		</select>
+		<button type="button" onclick="refresh()">Update Chart</button>
+	</div>
+
 	<div id="chart"></div>
 
 
 	<script>
-		getData().then(doGraph);
+		let chart = getChart([]);
+		chart.render();
+		
+		let data;
+
+		function refresh() {
+			getData().then(d => data = d).then(updateChart);
+		}
+
+		function updateChart() {
+			let simplified = document.getElementById('simplifiedCheckbox').checked;
+			let lastN = parseInt(document.getElementById('selectNumber').value);
+			
+			let final = data.slice(-lastN);
+			if (simplified) {
+				final = simplify(final);
+			}
+
+			chart.updateSeries([{
+				data: final
+			}]);
+		}
+
+		refresh();
+
 	</script>
 </body>
 

@@ -10,11 +10,11 @@ async function getData(cut=0) {
 		.then(response => response.text())
 		.then(text => text.trim().split('\n'));
 	console.log(data.map(parseLine));
-	return data.slice(cut).map(parseLine);
+	return data.slice(-cut).map(parseLine);
 }
 
 
-function doGraph(data, thickness=3) {
+function getChart(data, thickness=3) {
 	var options = {
 		series: [{
 			name: 'Internet Connection',
@@ -72,6 +72,15 @@ function doGraph(data, thickness=3) {
 		}
 	};
 
-	var chart = new ApexCharts(document.querySelector("#chart"), options);
-	chart.render();
+	return new ApexCharts(document.querySelector("#chart"), options);
+}
+
+function simplify(data) {
+	let out = [data[0]];
+	for (let i = 1; i < data.length - 1; i++) {
+		if (data[i - 1].y != data[i].y)
+			out.push(data[i]);
+	}
+	out.push(data[data.length - 1]);
+	return out;
 }
