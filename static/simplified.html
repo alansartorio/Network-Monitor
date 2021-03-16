@@ -25,9 +25,17 @@
 <body>
 	<div id="chart"></div>
 
-
 	<script>
-		getData().then(doGraph);
+        function simplify(data) {
+            let out = [data[0]];
+            for (let i = 1; i < data.length - 1; i++) {
+                if (data[i - 1].y != data[i].y)
+                    out.push(data[i]);
+            }
+            out.push(data[data.length - 1]);
+            return out;
+        }
+		getData().then(simplify).then(data => doGraph(data, 1));
 	</script>
 </body>
 
