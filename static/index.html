@@ -31,9 +31,10 @@
 			Simplified
 		</label>
 		<select id="selectNumber" selected="200" onchange="updateChart()">
-			<option value="0">Show all</option>
-			<option value="200">Show last 200</option>
-			<option value="400">Show last 400</option>
+			<option value="null">Show all</option>
+			<option value="3600000">Show last hour</option>
+			<option value="86400000">Show last day</option>
+			<option value="604800000">Show last week</option>
 		</select>
 		<button type="button" onclick="refresh()">Update Chart</button>
 	</div>
@@ -221,9 +222,11 @@
 
 		function updateChart() {
 			let simplified = document.getElementById('simplifiedCheckbox').checked;
-			let lastN = parseInt(document.getElementById('selectNumber').value);
+			let lastNValue = document.getElementById('selectNumber').value;
+			let lastN = lastNValue == 'null' ? null : parseInt(lastNValue);
+			console.log(lastN);
 
-			let final = data.slice(-lastN);
+			let final = filterLatest(data, lastN);
 			if (simplified) {
 				final = simplify(final);
 			}

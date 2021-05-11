@@ -5,11 +5,23 @@ function parseLine(line) {
 	let value = parseInt(fields[1]);
 	return { x: time, y: value };
 }
-async function getData(cut = 0) {
+async function getData() {
 	var data = await fetch('data.csv')
 		.then(response => response.text())
-		.then(text => text.trim().split('\n'));
-	return data.slice(-cut).map(parseLine);
+		.then(text => text.trim().split('\n'))
+		.then(data => data.map(parseLine));
+	return data;
+}
+
+function filterLatest(data, cut) {
+	if (cut != null) {
+		let first = data[data.length - 1].x - cut;
+		let cutIndex = data.findIndex(p => p.x > first);
+		let newData = data.slice(cutIndex);
+		newData.unshift({x: first, y: data[cutIndex - 1].y});
+		return newData;
+	}
+	return data;
 }
 
 
