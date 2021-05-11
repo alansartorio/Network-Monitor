@@ -8,12 +8,12 @@
 	<title>Zoomable TimeSeries</title>
 
 	<style>
-		#chart {
+		.chart {
 			max-width: 90%;
 			margin: 35px auto;
 		}
 
-		.group > * {
+		.group>* {
 			display: block;
 		}
 	</style>
@@ -27,7 +27,7 @@
 <body>
 	<div class="group">
 		<label for="simplifiedCheckbox">
-			<input id="simplifiedCheckbox" type="checkbox" checked="true" onchange="updateChart()"/>
+			<input id="simplifiedCheckbox" type="checkbox" checked="true" onchange="updateChart()" />
 			Simplified
 		</label>
 		<select id="selectNumber" selected="200" onchange="updateChart()">
@@ -38,13 +38,181 @@
 		<button type="button" onclick="refresh()">Update Chart</button>
 	</div>
 
-	<div id="chart"></div>
-
+	<div id="chart" class="chart"></div>
 
 	<script>
-		let chart = getChart([]);
+		function rollingAverage(data, windowSize = 10) {
+			let out = []
+			let queue = [];
+			let acum = 0;
+
+			let i = 0;
+			while (queue.length < windowSize - 1) {
+				let val = data[i].y;
+				queue.push(val);
+				acum += val;
+
+				i++;
+			}
+
+			for (; i < data.length; i++) {
+				let val = data[i].y;
+				queue.push(val);
+				acum += val;
+				out.push({ x: data[i].x, y: acum / windowSize });
+
+				acum -= queue.shift();
+			}
+
+			return out;
+		}
+
+		function uptimeCalculator(data) {
+			let totTime = data[data.length - 1].x - data[0].x;
+			let upTime = 0;
+			for (let i = 1; i < data.length; i++) {
+				if (data[i - 1].y == 1)
+					upTime += data[i].x - data[i - 1].x;
+			}
+			return { upTime, totTime };
+		}
+
+		function sample(data, resolution) {
+			let start = data[0].x;
+			let end = data[data.length - 1].x;
+
+			let out = [];
+			let i = 0;
+			for (let x = start; x < end; x += resolution) {
+				let spanStart = x;
+				let spanEnd = Math.min(end, x + resolution);
+
+				let totTime = spanEnd - spanStart;
+				let upTime = 0;
+
+				if (i > 0) {
+					let startTime = x - data[i - 1].x;
+
+					if (data[i - 1].y == 1) {
+						upTime -= startTime;
+					}
+				}
+				let startI = i;
+
+				while (i < data.length && data[i].x <= spanEnd) {
+					i++;
+				}
+				if (startI != i) {
+					let unfinished = uptimeCalculator(data.slice(startI - (startI > 0 ? 1 : 0), i));
+					upTime += unfinished.upTime;
+				}
+
+				let endTime = spanEnd - data[i - 1].x;
+				if (data[i - 1].y == 1) {
+					upTime += endTime;
+				}
+
+				out.push({ x: Math.floor((spanStart + spanEnd) / 2), y: upTime / totTime, upTime, totTime });
+			}
+
+			return out;
+		}
+
+		function largestTriangleThreeBucket(data, threshold, xProperty, yProperty) {
+			/**
+			 * This method is adapted from the 
+			 * "Largest Triangle Three Bucket" algorithm by Sveinn Steinarsson
+			 * In his 2013 Masters Thesis - "Downsampling Time Series for Visual Representation"
+			 * http://skemman.is/handle/1946/15343
+			 *
+			 * The MIT License
+			 *  
+			 * Copyright (c) 2013 by Sveinn Steinarsson
+			 *
+			 * Permission is hereby granted, free of charge, to any person obtaining a copy
+			 * of this software and associated documentation files (the "Software"), to deal
+			 * in the Software without restriction, including without limitation the rights
+			 * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+			 * copies of the Software, and to permit persons to whom the Software is
+			 * furnished to do so, subject to the following conditions:
+			 * The above copyright notice and this permission notice shall be included in
+			 * all copies or substantial portions of the Software.
+			 * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+			 * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+			 * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+			 * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+			 * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+			 * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+			 * THE SOFTWARE.
+			 * --------------------------------------------------------------------------------------------------------
+			 */
+			yProperty = yProperty || 0;
+			xProperty = xProperty || 1;
+
+			var m = Math.floor,
+				y = Math.abs,
+				f = data.length;
+
+			if (threshold >= f || 0 === threshold) {
+				return data;
+			}
+
+			var n = [],
+				t = 0,
+				p = (f - 2) / (threshold - 2),
+				c = 0,
+				v,
+				u,
+				w;
+
+			n[t++] = data[c];
+
+			for (var e = 0; e < threshold - 2; e++) {
+				for (var g = 0,
+						h = 0,
+						a = m((e + 1) * p) + 1,
+						d = m((e + 2) * p) + 1,
+						d = d < f ? d : f,
+						k = d - a; a < d; a++) {
+					g += +data[a][xProperty], h += +data[a][yProperty];
+				}
+
+				for (var g = g / k,
+						h = h / k,
+						a = m((e + 0) * p) + 1,
+						d = m((e + 1) * p) + 1,
+						k = +data[c][xProperty],
+						x = +data[c][yProperty],
+						c = -1; a < d; a++) {
+					"undefined" != typeof data[a] &&
+						(u = .5 * y((k - g) * (data[a][yProperty] - x) - (k - data[a][xProperty]) * (h - x)),
+							u > c && (c = u, v = data[a], w = a));
+				}
+
+				n[t++] = v;
+				c = w;
+			}
+
+			n[t++] = data[f - 1];
+
+			return n;
+		};
+
+		function resample(data) {
+			return largestTriangleThreeBucket(data, 200, 'x', 'y');
+		}
+
+		function getUptime(data) {
+			// let sampled = rollingAverage(resample(sample(data, 10000000)), 1);
+			let sampled = sample(data, 10000000);
+			return sampled;
+		}
+	</script>
+
+	<script>
+		let chart = getChart([], []);
 		chart.render();
-		
+
 		let data;
 
 		function refresh() {
@@ -54,15 +222,17 @@
 		function updateChart() {
 			let simplified = document.getElementById('simplifiedCheckbox').checked;
 			let lastN = parseInt(document.getElementById('selectNumber').value);
-			
+
 			let final = data.slice(-lastN);
 			if (simplified) {
 				final = simplify(final);
 			}
+			let uptime = getUptime(final);
 
-			chart.updateSeries([{
-				data: final
-			}]);
+			chart.updateSeries([
+				{ data: final },
+				{ data: uptime }
+			]);
 		}
 
 		refresh();

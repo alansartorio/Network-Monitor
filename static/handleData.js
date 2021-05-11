@@ -5,27 +5,29 @@ function parseLine(line) {
 	let value = parseInt(fields[1]);
 	return { x: time, y: value };
 }
-async function getData(cut=0) {
+async function getData(cut = 0) {
 	var data = await fetch('data.csv')
 		.then(response => response.text())
 		.then(text => text.trim().split('\n'));
-	console.log(data.map(parseLine));
 	return data.slice(-cut).map(parseLine);
 }
 
 
-function getChart(data, thickness=3) {
+function getChart(connectivity, uptime, thickness = 3) {
 	var options = {
 		series: [{
-			name: 'Internet Connection',
-			data: data,
+			name: 'Internet Connectivity',
+			data: connectivity,
+		}, {
+			name: 'Uptime %',
+			data: uptime,
 		}],
 		chart: {
 			type: 'line',
 			height: 350,
 		},
 		title: {
-			text: 'Internet Connection',
+			text: 'Internet Status',
 			align: 'left'
 		},
 		fill: {
@@ -37,20 +39,34 @@ function getChart(data, thickness=3) {
 			},
 		},
 		stroke: {
-			curve: 'stepline',
+			curve: ['stepline', 'smooth'],
 			lineCap: 'round',
 			width: thickness,
 		},
-		yaxis: {
-			labels: {
-				formatter: function (val) {
-					return val.toFixed(0);
+		yaxis: [
+			{
+				labels: {
+					formatter: function (val) {
+						return val.toFixed(0);
+					},
+				},
+				title: {
+					text: 'Connectivity'
 				},
 			},
-			title: {
-				text: 'Connectivity'
-			},
-		},
+			{
+				labels: {
+					formatter: function (val) {
+						return (val * 100).toFixed(1) + '%';
+					},
+				},
+				title: {
+					text: 'Uptime %'
+				},
+				min: 0,
+				max: 1
+			}
+		],
 		xaxis: {
 			type: 'datetime',
 			labels: {
@@ -63,12 +79,16 @@ function getChart(data, thickness=3) {
 			}
 		},
 		tooltip: {
-			shared: false,
-			y: {
+			shared: true,
+			y: [{
 				formatter: function (val) {
 					return val.toFixed(0);
 				}
-			}
+			}, {
+				formatter: function (val) {
+					return (val * 100).toFixed(1) + '%';
+				}
+			}]
 		}
 	};
 
