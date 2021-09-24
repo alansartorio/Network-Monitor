@@ -33,8 +33,11 @@
 		<select id="selectNumber" selected="200" onchange="updateChart()">
 			<option value="null">Show all</option>
 			<option value="3600000">Show last hour</option>
+			<option value="18000000">Show last five hours</option>
 			<option value="86400000">Show last day</option>
+			<option value="172800000">Show last two days</option>
 			<option value="604800000">Show last week</option>
+			<option value="1209600000">Show last two weeks</option>
 		</select>
 		<button type="button" onclick="refresh()">Update Chart</button>
 	</div>
